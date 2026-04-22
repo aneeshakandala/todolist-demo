@@ -9,6 +9,10 @@ export default function App() {
   const [input, setInput] = useState('')
   const [filter, setFilter] = useState('all')
 
+  // NEW: editing state
+  const [editingId, setEditingId] = useState(null)
+  const [editText, setEditText] = useState('')
+
   const addTodo = () => {
     const text = input.trim()
     if (!text) return
@@ -19,7 +23,32 @@ export default function App() {
   const toggleTodo = (id) =>
     setTodos(todos.map((t) => (t.id === id ? { ...t, done: !t.done } : t)))
 
-  const deleteTodo = (id) => setTodos(todos.filter((t) => t.id !== id))
+  const deleteTodo = (id) =>
+    setTodos(todos.filter((t) => t.id !== id))
+
+  // NEW: edit handlers
+  const startEdit = (todo) => {
+    setEditingId(todo.id)
+    setEditText(todo.text)
+  }
+
+  const saveEdit = (id) => {
+    const text = editText.trim()
+
+    if (!text) {
+      deleteTodo(id)
+    } else {
+      setTodos(todos.map((t) => (t.id === id ? { ...t, text } : t)))
+    }
+
+    setEditingId(null)
+    setEditText('')
+  }
+
+  const cancelEdit = () => {
+    setEditingId(null)
+    setEditText('')
+  }
 
   const visible = todos.filter((t) =>
     filter === 'active' ? !t.done : filter === 'completed' ? t.done : true,
@@ -39,6 +68,7 @@ export default function App() {
       <div className="w-full max-w-md bg-white rounded-xl shadow-md p-6">
         <h1 className="text-2xl font-bold text-slate-800 mb-4">Todo List</h1>
 
+        {/* Input */}
         <div className="flex gap-2 mb-4">
           <input
             type="text"
@@ -56,6 +86,7 @@ export default function App() {
           </button>
         </div>
 
+        {/* Filters */}
         <div className="flex gap-2 mb-4">
           <button onClick={() => setFilter('all')} className={tabClass('all')}>
             All
@@ -68,20 +99,39 @@ export default function App() {
           </button>
         </div>
 
+        {/* Todo List */}
         <ul className="space-y-2">
           {visible.map((todo) => (
             <li
               key={todo.id}
               className="flex items-center gap-3 px-3 py-2 rounded-md border border-slate-200 hover:bg-slate-50"
             >
-              <button
-                onClick={() => toggleTodo(todo.id)}
-                className={`flex-1 text-left ${
-                  todo.done ? 'line-through text-slate-400' : 'text-slate-800'
-                }`}
-              >
-                {todo.text}
-              </button>
+              {editingId === todo.id ? (
+                <input
+                  autoFocus
+                  value={editText}
+                  onChange={(e) => setEditText(e.target.value)}
+                  onBlur={() => saveEdit(todo.id)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') saveEdit(todo.id)
+                    if (e.key === 'Escape') cancelEdit()
+                  }}
+                  className="flex-1 px-2 py-1 border border-indigo-400 rounded-md focus:outline-none"
+                />
+              ) : (
+                <button
+                  onClick={() => toggleTodo(todo.id)}
+                  onDoubleClick={() => startEdit(todo)}
+                  className={`flex-1 text-left ${
+                    todo.done
+                      ? 'line-through text-slate-400'
+                      : 'text-slate-800'
+                  }`}
+                >
+                  {todo.text}
+                </button>
+              )}
+
               <button
                 onClick={() => deleteTodo(todo.id)}
                 className="text-slate-400 hover:text-red-500 text-lg font-bold px-2"
@@ -91,6 +141,7 @@ export default function App() {
               </button>
             </li>
           ))}
+
           {visible.length === 0 && (
             <li className="text-center text-slate-400 py-4 text-sm">
               Nothing here.
@@ -98,6 +149,7 @@ export default function App() {
           )}
         </ul>
 
+        {/* Footer */}
         <div className="mt-4 text-sm text-slate-500">
           {remaining} {remaining === 1 ? 'item' : 'items'} left
         </div>
